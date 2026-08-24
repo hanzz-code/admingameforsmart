@@ -1,4 +1,4 @@
-# deps
+git add .gitignore README.md# deps
 /node_modules
 
 # generated content
