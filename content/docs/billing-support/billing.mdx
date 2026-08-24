@@ -1,0 +1,63 @@
+---
+title: Billing, Transaksi, & Idempotensi Webhook
+description: Penjelasan penagihan invoice langganan, visualisasi transaksi Xendit, callback webhook, dan pengamanan idempotensi database.
+---
+
+# Billing, Transaksi, & Idempotensi Webhook
+
+Dashboard Admin memantau transaksi masuk, penagihan invoice biaya registrasi turnamen, dan langganan paket pengguna secara transaksional melalui integrasi **Xendit Payment Gateway**.
+
+---
+
+## 1. Pemantauan Transaksi & Invoice (`/billing`)
+
+Halaman ini mencatat semua arus kas masuk dari pengguna.
+*   **Invoices Table**: Menampilkan nominal transaksi, jatuh tempo invoice, status pembayaran (paid, unpaid, overdue), tanggal pembayaran (`paid_at`), serta hubungan ke langganan user.
+*   **Subscriptions List**: Menampilkan data keanggotaan aktif per user, plan type (Starter, Pro, Enterprise), status langganan, dan nominal iuran bulanan.
+
+---
+
+## 2. Callback Webhook & Pembaruan Status Real-Time
+
+Ketika pengguna melakukan pembayaran menggunakan metode transfer bank, e-wallet, atau kartu kredit melalui Xendit:
+
+1.  Server Xendit mengirimkan data POST payload berisi callback konfirmasi pembayaran ke API endpoint backend kita (`/api/payment/webhook`).
+2.  Endpoint webhook akan melakukan parsing data untuk mencocokkan nomor invoice:
+    *   Mengubah status transaksi di tabel `transactions` dari `'PENDING'` menjadi `'PAID'`.
+    *   Jika transaksi ditujukan untuk biaya registrasi kompetisi turnamen, kolom `is_paid` pada tabel `competition_participants` untuk peserta tersebut otomatis diubah menjadi `true`.
+    *   Ini memastikan bahwa user dapat langsung mendapatkan akses whitelist room turnamen secara real-time sesaat setelah transfer pembayaran terdeteksi sukses.
+
+---
+
+## 3. Sistem Idempotensi Database (`payment_idempotency`)
+
+Karena jaringan internet tidak selalu stabil, server pembayaran Xendit mungkin akan mengirimkan ulang (*retry*) callback pembayaran yang sama beberapa kali jika respons HTTP dari server kita mengalami timeout. Untuk mencegah terjadinya pemrosesan ganda (misalnya mengisi ulang saldo ganda atau memicu event ganda), sistem menggunakan tabel **`payment_idempotency`**:
+
+```
+                  +--------------------------+
+                  |  Receive Webhook Post    |
+                  +--------------------------+
+                               |
+                               v
+                  +--------------------------+
+                  | Check event_id in        |
+                  | payment_idempotency table|
+                  +--------------------------+
+                               / \
+                              /   \
+                         Exists   Not Exists
+                           /         \
+                          v           v
+                  +------------+   +-----------------------+
+                  | Ignore     |   | 1. Insert event_id    |
+                  | (Already   |   | 2. Process Business   |
+                  |  Processed)|   |    Logic (Update Status)
+                  +------------+   | 3. Respond HTTP 200   |
+                                   +-----------------------+
+```
+
+### Mekanisme Pengamanan:
+*   Setiap callback dari Xendit memiliki ID transaksi unik (`event_id`).
+*   Sebelum server memproses pembaruan status transaksi, sistem melakukan kueri pencarian kunci `event_id` pada tabel `payment_idempotency`.
+*   Jika `event_id` sudah ada di tabel, server akan mengabaikan proses bisnis berikutnya dan langsung mengembalikan respons `HTTP 200 OK` (karena transaksi sudah sukses diproses sebelumnya).
+*   Jika belum terdaftar, server akan mencatat `event_id` tersebut ke tabel `payment_idempotency`, memproses pembaruan status transaksi ke `'PAID'`, lalu membalas respons `HTTP 200 OK`.

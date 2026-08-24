@@ -1,0 +1,37 @@
+---
+title: Operasi & Modul Tambahan
+description: Panduan halaman Monitoring Sesi Live Game, Administrasi Kamar Sesi, dan Pemulihan Data Tempat Sampah.
+---
+
+# Operasi & Modul Tambahan
+
+Kategori ini mencakup halaman monitoring aktivitas ruang game aktif, intervensi manual sesi turnamen, serta modul pemulihan data yang dihapus (*trash bin*).
+
+---
+
+## 1. Live Sesi Game (`/game-sessions`)
+Modul pemantauan aktivitas permainan kuis edukasi yang sedang aktif dijalankan secara real-time oleh para pemain.
+
+*   **Peta PIN Game Aktif**: Menampilkan semua game PIN 6 digit yang sedang berjalan di ekosistem, lengkap dengan nama aplikasi game pendukungnya (AstroLearn, CrazyRace, dll.).
+*   **Informasi Host Sesi**: Menampilkan profil pembuat room sesi game (baik guru, panitia turnamen, maupun pengguna umum).
+*   **Pantauan Peserta**: Melacak jumlah pemain yang saat ini terhubung di dalam room game, nickname mereka, skor live, dan stempel waktu pembuatan sesi room.
+
+---
+
+## 2. Pengelolaan Sesi Turnamen (`/manage-sessions`)
+Halaman kontrol administratif untuk mengawasi dan mengintervensi sesi game turnamen resmi jika terjadi kendala teknis di lapangan.
+
+*   **Kunci/Buka Ruangan (Lock/Unlock Session)**: Admin memiliki kendali untuk mengunci room secara manual jika pendaftaran masuk lobby telah ditutup, atau membuka kembali room yang terkunci.
+*   **Terminasi Paksa**: Admin dapat mengakhiri sesi permainan turnamen secara paksa dari jarak jauh jika terjadi kecurangan atau gangguan koneksi, serta memperbarui status sesi game di database menjadi selesai (*completed*).
+
+---
+
+## 3. Tempat Sampah (`/trash-bin`)
+Modul pemulihan (*data recovery*) terpusat untuk memulihkan entri-entri penting yang terhapus secara tidak sengaja oleh administrator. Halaman ini dibagi menjadi tiga tab kategori:
+
+*   **Deleted Quizzes**: Kuis-kuis yang telah di-soft-delete. Menampilkan judul kuis, jumlah soal, email pembuat kuis, dan waktu penghapusan. Admin dapat memilih untuk memulihkan kuis kembali ke bank kuis aktif, atau menghapusnya secara permanen dari server database.
+*   **Deleted Users**: Akun-akun pengguna yang dihapus sementara. Admin dapat memulihkan kembali profil user tersebut beserta seluruh history aktivitasnya.
+*   **Deleted Groups**: Grup lobi chat komunitas yang dihapus. Menampilkan nama lobi, jumlah anggota lama, dan pembuat grup.
+*   **Aksi Global**:
+    *   **Restore**: Memulihkan kembali data kuis/user/grup ke tabel operasional utama.
+    *   **Delete Permanently**: Melakukan kueri purge data keras untuk membersihkan baris secara fisik dari PostgreSQL Supabase.

@@ -1,0 +1,88 @@
+---
+title: System Features & Modules
+description: Bedah mendalam fitur utama dashboard mulai dari Manajemen User, Manajemen Game, Orkestrasi Kompetisi Real-Time, Whitelist, hingga Otomatisasi Support SLA.
+---
+
+# Fitur Sistem & Modul Dashboard
+
+Admin Dashboard menyediakan berbagai modul administratif terintegrasi untuk mengendalikan ekosistem game dan interaksi para pemain.
+
+---
+
+## 1. Struktur Navigasi Sidebar
+
+Seluruh modul dikategorikan secara rapi pada komponen utama `app-sidebar.tsx` menjadi kelompok-kelompok berikut:
+*   **Analitik**: Halaman `/dashboard` untuk ringkasan cepat KPI performa server, statistik user, dan bagan lokasi geografis.
+*   **Manajemen User**: Modul `/users`, `/profiles`, dan `/subscriptions` untuk kendali akun.
+*   **Manajemen Konten**: Modul `/quizzes`, `/quiz-approval`, `/category`, `/blog`, `/blog-category`, dan `/blog-sessions`.
+*   **Kompetisi (Turnamen)**: Modul `/competition`, `/manage-competitions`, dan `/manage-sessions`.
+*   **Pusat Bantuan**: Modul `/support` (dashboard tiket & antrean tiket aktif) dan laporan moderasi `/reports`.
+*   **Konfigurasi Sistem**: Modul `/settings`, `/administrator`, `/receptionist`, `/rejection-templates`, `/address`, dan `/trash-bin`.
+
+---
+
+## 2. Manajemen User & Profil (`/users`, `/profiles`)
+
+Modul ini memberikan akses penuh kepada administrator untuk:
+*   **CRUD Data Profil**: Mengatur nama lengkap, username, foto profil (avatar), organisasi, tanggal lahir, negara, provinsi, dan kota dari data profil terdaftar.
+*   **Moderasi Perilaku (Blocking/Role)**: Memblokir user bermasalah secara langsung (`is_blocked = true`) dan menetapkan tingkat kewenangan (`role` admin atau user biasa).
+*   **Analisis Aktivitas Game**: Melihat statistik host sesi turnamen, jumlah game yang diikuti, serta daftar sesi game yang baru diikuti oleh user secara mendalam.
+*   **Manajemen Subskripsi**: Memantau tingkat keanggotaan langganan user (Free, Starter, Pro, Enterprise) serta sinkronisasi tagihan invoice.
+
+---
+
+## 3. Orkestrasi Kompetisi & Integrasi Whitelist
+
+Orkestrasi turnamen merupakan modul paling krusial yang mengendalikan alur kompetisi multi-babak (multi-round) dari awal hingga selesai.
+
+### Struktur Kompetisi Multi-Babak
+Turnamen dibagi menjadi beberapa babak (Rounds), di mana masing-masing babak memiliki grup/klasemen (Groups/Standings) yang berisi sekumpulan peserta yang di-assign kuis tertentu.
+
+```
+Kompetisi (Competition)
+ └── Babak 1 (Round 1)
+      ├── Grup A (Group A) -> Quiz ID 123 -> Sesi Game PIN XXXXXX
+      └── Grup B (Group B) -> Quiz ID 124 -> Sesi Game PIN YYYYYY
+```
+
+### Sinkronisasi Real-Time CRUD Grup & Babak
+Aksi pengelolaan babak dan klasemen di dashboard langsung terhubung secara transaksional dengan database PostgreSQL:
+*   **Simpan Konfigurasi Babak (Assign Quiz)**: Melalui komponen [phase-group-stage.tsx](file:///d:/UBIG/PROYEK/admin_dashboard-main/app/%28dashboard%29/manage-competitions/%5Bid%5D/_components/phase-group-stage.tsx) dan server action `saveGroupRoundsToDatabase` ([actions.ts](file:///d:/UBIG/PROYEK/admin_dashboard-main/app/%28dashboard%29/manage-competitions/%5Bid%5D/actions.ts)), penambahan, perubahan, atau penghapusan babak kuis akan langsung disinkronkan ke database.
+*   **Penghapusan Bersih (Cleanup Hook)**: Untuk mencegah data sampah yatim piatu (*orphaned records*), saat admin menghapus grup kompetisi atau babak, sistem otomatis menghapus:
+    1.  Room lobby terkait di tabel `groups`.
+    2.  Sesi room game terkait di tabel `game_sessions` (atau tabel `sessions`).
+    3.  Anggota grup yang berada di dalamnya (`competition_group_members`).
+
+### Sistem Whitelist Keamanan Ruangan Sesi Game
+Turnamen formal membatasi masuknya pemain luar yang tidak sah. Integrasi whitelist beroperasi sebagai berikut:
+1.  Pada saat grup babak dibuat, daftar ID user yang terdaftar dalam kompetisi dimasukkan ke dalam kolom array `allowed_user_ids` pada tabel `sessions` atau `game_sessions`.
+2.  Ketika pemain mencoba melakukan auto-join atau memasukkan pin di game client (AstroLearn, CrazyRace, Memory-Game, NitroQuiz, Zombie-Rawr), kode game client akan mengambil data session dari database.
+3.  Jika array `allowed_user_ids` tidak kosong, game client memvalidasi apakah profile ID pemain terdaftar di dalamnya. Jika tidak terdaftar, user akan dihadapkan pada layar **Access Denied (Akses Ditolak)** yang elegan dan dinonaktifkan dari permainan.
+
+---
+
+## 4. Pelacakan Sesi Game (`/game-sessions`)
+
+Modul ini menampilkan status live monitoring dari seluruh game yang sedang berjalan di ekosistem game:
+*   **Game PIN**: Mengidentifikasi kode room aktif (6 digit alfanumerik).
+*   **Host Info**: Menampilkan identitas admin/user pembuat ruangan.
+*   **Status Room**: Menunjukkan siklus lobi (`waiting`, `active`/`playing`, `completed`).
+*   **Statistik Peserta**: Menampilkan jumlah pemain aktif, nickname mereka, durasi permainan, batasan soal, serta peringkat skor akhir secara langsung.
+
+---
+
+## 5. Antrean Support & Otomatisasi SLA (`/support`, `/reports`)
+
+Modul support tiket menangani keluhan pengguna dengan sistem otomasi *Service Level Agreement* (SLA) berbasis database:
+*   **Live Chat & Internal Notes**: Support staff dapat membalas pesan pengguna langsung pada tiket keluhan. Sistem menyediakan **Internal Notes**, yaitu catatan internal khusus staff untuk berkomunikasi di balik layar tanpa terlihat oleh pengguna.
+*   **Otomatisasi Prioritas Tiket (Enterprise SLA)**: Menggunakan database trigger (`fn_auto_enterprise_priority`), jika tiket dibuat oleh user dengan tipe langganan *Enterprise*, sistem secara otomatis mengubah tingkat prioritas tiket menjadi **High**.
+*   **Otomatisasi Eskalasi Overdue Billing**: Tiket terkait kategori billing yang belum terselesaikan dalam waktu 24 jam dan memiliki invoice yang belum dibayar (*unpaid/overdue*) secara otomatis dinaikkan status prioritasnya menjadi **Urgent** via routine cron `fn_escalate_overdue_billing()`.
+*   **Moderasi Konten & Rejection Templates**: Jika ada laporan konten kuis/blog yang melanggar aturan, moderator dapat memblokir konten tersebut dan mengirimkan pemberitahuan penolakan berdasarkan templat alasan penolakan multi-bahasa (`rejection-templates`).
+
+---
+
+## 6. Tempat Sampah (`/trash-bin`)
+
+Untuk mencegah kehilangan data penting akibat kesalahan klik dari admin, dashboard mengimplementasikan fitur soft-delete:
+*   Data Quizzes, Users, dan Groups yang dihapus tidak langsung hilang dari database utama, melainkan dipindahkan statusnya dan dikumpulkan ke halaman `/trash-bin`.
+*   Admins dapat melakukan **Restore** untuk mengembalikan data ke status aktif semula, atau melakukan **Permanent Delete** untuk membersihkan data selamanya dari hard disk database.

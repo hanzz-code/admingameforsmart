@@ -1,0 +1,58 @@
+---
+title: Manajemen User & Keanggotaan
+description: Panduan detail halaman Manajemen User, Profil Pengguna, Langganan Subskripsi, Administrator, dan Meja Resepsionis QR Check-In.
+---
+
+# Manajemen User & Keanggotaan
+
+Kategori ini memuat semua fungsionalitas untuk mengelola akun pengguna, tingkat langganan, hak istimewa admin, serta sistem verifikasi kehadiran fisik peserta di meja resepsionis turnamen.
+
+---
+
+## 1. Manajemen User (`/users`)
+Pusat kontrol data akun pengguna terdaftar yang menampilkan tabel master seluruh pengguna di ekosistem.
+
+*   **Penyaringan & Pencarian**: Filter cepat berdasarkan status akun (aktif/diblokir) dan peran (`role` admin/user biasa).
+*   **Blokir Akun (Block/Unblock)**: Admin dapat menangguhkan akun pengguna (`is_blocked = true`) secara instan. Pengguna yang diblokir tidak akan dapat masuk ke aplikasi game client maupun landing page.
+*   **Perubahan Peran (Role Assignment)**: Menetapkan peran administratif khusus (seperti mempromosikan user biasa menjadi admin).
+*   **Soft Delete**: Penghapusan akun pengguna dikirimkan terlebih dahulu ke halaman Trash Bin sebelum dapat dihapus secara permanen dari database.
+
+---
+
+## 2. Profil Pengguna (`/profiles`)
+Halaman detail profil lengkap dari masing-masing pengguna yang menampilkan seluruh data pribadi dan riwayat aktivitas sosial mereka.
+
+*   **Identitas & Kontak**: Menampilkan nama lengkap, username, email, nomor telepon, tanggal lahir, dan nama organisasi/sekolah.
+*   **Metrik Sosial**: Menampilkan jumlah pengikut (*followers*), yang diikuti (*following*), dan teman (*friends*).
+*   **Pemetaan Geografis**: Integrasi relasi tabel `countries`, `states`, dan `cities` untuk menampilkan peta dan alamat tempat tinggal user secara presisi.
+*   **Riwayat Aktivitas Game**: Menampilkan statistik internal pengguna, seperti total game yang pernah dimainkan dan aplikasi yang paling sering dibuka.
+
+---
+
+## 3. Subskripsi & Langganan (`/subscriptions`)
+Modul untuk memantau paket keanggotaan berbayar pengguna.
+
+*   **Daftar Paket**: Menampilkan paket langganan aktif pengguna (Free, Starter, Pro, Enterprise).
+*   **Status Tagihan**: Memantau status invoice pembayaran langganan (paid, unpaid, overdue, past_due).
+*   **Jatuh Tempo**: Melacak tanggal penagihan berikutnya (*next billing date*) dan nominal biaya langganan secara terperinci.
+
+---
+
+## 4. Manajemen Administrator (`/administrator`)
+Modul khusus untuk mengelola akun-akun staf internal yang memiliki hak akses administratif ke Dashboard. Halaman ini digunakan untuk melihat daftar administrator aktif, mencabut hak akses admin, atau menambah staf admin baru.
+
+---
+
+## 5. Meja Resepsionis & QR Check-In (`/receptionist`)
+Modul khusus yang dirancang untuk staf operasional di lapangan saat menyelenggarakan turnamen fisik/luring untuk memverifikasi kehadiran peserta.
+
+### Pelacakan Kehadiran Finalis (`/receptionist/[id]`)
+*   **Penyaringan Babak Final**: Sistem secara otomatis menyaring kompetisi dan hanya menampilkan grup babak yang berada di tahap **"Final"** (`g.stage.toLowerCase() === "final"`).
+*   **Pengelompokan Klasemen**: Peserta diurutkan berdasarkan grup kompetisi final masing-masing. Dashboard menyediakan checkbox interaktif untuk menandai kehadiran peserta (`is_present = true`).
+*   **Real-Time View Sync**: Menggunakan Supabase Postgres Changes Channel, ketika satu admin menandai kehadiran peserta (baik manual maupun lewat QR scan), seluruh admin di meja resepsionis lain akan melihat tanda centang kehadiran berubah secara instan tanpa reload halaman.
+*   **Pencarian Lintas Grup**: Input pencarian global untuk menemukan finalis secara cepat di seluruh kelompok klasemen yang berbeda.
+
+### Integrasi Scanner QR Code Kamera
+*   Admin dapat membuka kamera smartphone/laptop langsung dari dashboard untuk memindai QR Code kartu peserta.
+*   **Parser URL Profil**: Scanner secara cerdas mendeteksi jika teks QR Code memuat URL profil peserta (`/profile/<id>`), memotong string tersebut, dan mengambil ID/username uniknya saja.
+*   **Check-In Instan**: Scanner mencocokkan hasil scan dengan database finalis. Jika cocok dan belum hadir, status diubah menjadi hadir (`is_present: true`) dan menampilkan notifikasi sukses hijau. Jika sudah pernah di-scan, sistem memberikan notifikasi informasi biru.

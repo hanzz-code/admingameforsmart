@@ -1,0 +1,48 @@
+---
+title: Pusat Bantuan & Otomatisasi SLA
+description: Panduan sistem pengelolaan tiket keluhan pengguna, obrolan bantuan, log komentar internal staf, dan aturan eskalasi SLA otomatis.
+---
+
+# Pusat Bantuan & Otomatisasi SLA
+
+Ekosistem GameForSmart menyediakan portal keluhan pengguna terintegrasi di halaman **Support Tickets** (`/support`) dan **Reports** (`/reports`) untuk memproses aduan teknis, keuangan, atau pelanggaran konten.
+
+---
+
+## 1. Antrean Tiket Bantuan (`/support`)
+
+Tabel antrean utama mengumpulkan seluruh aduan dari pengguna.
+*   **Filter Prioritas**: Membagi tiket menjadi `Low`, `Medium`, `High`, dan `Urgent`.
+*   **Filter Status**: Melacak progress tiket dari `Open`, `In Progress`, `Resolved`, hingga `Closed`.
+*   **Staf Assignee**: Kolom penugasan untuk melimpahkan penanganan tiket ke staf admin tertentu.
+
+---
+
+## 2. Fitur Kerja Staf & Obrolan Tiket
+
+Saat admin membuka detail tiket keluhan:
+*   **Obrolan Dua Arah**: Admin dapat membalas pesan langsung ke pengguna untuk memandu pemecahan masalah.
+*   **Catatan Internal (Internal Notes)**: Staf support dapat menuliskan catatan operasional (`ticket_internal_notes`) untuk berkoordinasi di balik layar. Catatan ini hanya terlihat oleh sesama tim admin, sementara pengguna tidak dapat melihatnya.
+
+---
+
+## 3. Otomatisasi SLA Sisi Database
+
+Sistem didukung oleh otomatisasi alur kerja (SLA) langsung pada database PostgreSQL Supabase untuk memastikan tiket penting ditangani lebih cepat:
+
+### A. Otomatisasi Tiket Enterprise (Trigger `fn_auto_enterprise_priority`)
+*   Ketika tiket baru dibuat oleh pengguna, database trigger mendeteksi paket keanggotaan pembuat tiket.
+*   Jika terdaftar sebagai pelanggan kelas **Enterprise**, tingkat prioritas tiket secara otomatis diatur menjadi **High**.
+
+### B. Otomatisasi Eskalasi Billing Overdue (`fn_escalate_overdue_billing`)
+*   Sistem menjalankan scheduler rutin yang memantau tiket kategori billing.
+*   Jika tiket berstatus `Open` atau `In Progress`, dibuat lebih dari 24 jam yang lalu, dan berasosiasi dengan invoice langganan yang lewat jatuh tempo (*unpaid/overdue*), prioritas tiket otomatis ditingkatkan menjadi **Urgent**.
+
+---
+
+## 4. Moderasi Aduan Pelanggaran (`/reports`)
+
+Halaman khusus untuk memoderasi laporan aduan pengguna tentang konten kuis, blog, atau grup yang dilaporkan melanggar syarat ketentuan.
+
+*   **Thread Pesan Klarifikasi**: Menyediakan media obrolan pesan internal antara admin dan pelapor untuk membicarakan aduan pelanggaran konten.
+*   **Penyelesaian Pelanggaran**: Staf admin dapat memutuskan untuk memblokir kuis/grup yang dilaporkan, mengirimkan umpan balik alasan penolakan, dan mengubah status laporan menjadi selesai (*resolved*).

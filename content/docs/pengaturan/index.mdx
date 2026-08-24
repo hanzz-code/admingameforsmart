@@ -1,0 +1,41 @@
+---
+title: Pengaturan Sistem & Konfigurasi
+description: Panduan halaman Pengaturan Umum, Tampilan Kustom, Alasan Penolakan Kuis, dan Manajemen Wilayah Geografis.
+---
+
+# Pengaturan Sistem & Konfigurasi
+
+Kategori ini memuat opsi pengaturan konfigurasi sistem global, visualisasi kustomisasi tema, templat alasan penolakan moderasi kuis, serta data master pembagian wilayah geografis.
+
+---
+
+## 1. Pengaturan Umum (`/settings`)
+Halaman untuk mengubah konfigurasi fungsionalitas sistem global.
+
+*   **Pengaturan Aplikasi**: Mengatur nama platform, email pengirim notifikasi, batas maksimum kapasitas pemain per room game standar, dan pengaturan server default.
+*   **Maintenance Mode**: Opsi sakelar untuk mengaktifkan mode pemeliharaan sistem secara global yang akan membatasi akses pemain umum untuk sementara waktu.
+
+---
+
+## 2. Kustomisasi Tampilan (`/appearance`)
+Modul penyesuaian estetika visual tema Admin Dashboard.
+
+*   **Theme Customizer**: Admin dapat memilih skema palet warna (seperti zinc, slate, rose, orange, green, blue) dan beralih antara tema gelap (*Dark Mode*) atau terang (*Light Mode*) secara real-time.
+*   **Radius Border**: Mengatur tingkat kelengkungan sudut komponen UI (seperti button dan card) di seluruh halaman dashboard agar selaras dengan panduan merek (*branding guidelines*).
+
+---
+
+## 3. Templat Penolakan Moderasi (`/rejection-templates`)
+Modul penyusun daftar alasan standar penolakan kuis atau konten saat melakukan proses moderasi.
+
+*   **Penyusunan Alasan Multi-Bahasa**: Admin dapat menuliskan templat alasan penolakan dalam Bahasa Inggris (`reason_en`) dan Bahasa Indonesia (`reason_id`) agar kreator kuis dari berbagai negara menerima umpan balik penolakan yang mudah dipahami.
+*   **Kategori Templat**: Pengelompokan alasan penolakan berdasarkan kategori (misalnya: duplikat, mengandung unsur pornografi/kekerasan, format soal rusak, atau informasi menyesatkan).
+
+---
+
+## 4. Alamat Geografis (`/address`)
+Pusat database referensi lokasi dunia untuk mendukung data pengisian alamat profil user.
+
+*   **Negara (`countries`)**: Daftar master seluruh negara di dunia lengkap dengan kode ISO2, ISO3, kode telepon, capital city, emoji bendera, serta koordinat garis lintang dan bujur.
+*   **Provinsi (`states`)**: Pembagian wilayah provinsi/negara bagian yang terhubung langsung dengan ID negara induk terkait.
+*   **Kota (`cities`)**: Daftar kota/kabupaten yang terhubung langsung dengan ID provinsi/negara bagian terkait untuk menjamin keakuratan pengisian lokasi user.

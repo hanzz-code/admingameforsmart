@@ -1,0 +1,36 @@
+---
+title: Master Data Analytics
+description: Panduan pembacaan analitik pustaka game, popularitas permainan, serta monitoring log aktivitas lobi game terpusat.
+---
+
+# Master Data Analytics
+
+Halaman **Master Data Analytics** (`/master/dashboard`) adalah portal visual untuk menganalisis popularitas game, intensitas pembuatan room lobi game oleh guru/panitia, serta akumulasi jumlah pemain aktif.
+
+---
+
+## 1. Dasbor Analitik Game
+
+Halaman ini memaparkan metrik performa game secara agregat:
+*   **Total Sessions**: Menghitung jumlah kumulatif sesi permainan yang dibuat untuk game tertentu.
+*   **Finished Sessions**: Jumlah sesi permainan yang berhasil diselesaikan hingga babak akhir (membantu mengukur *drop-off rate* atau jika pemain keluar sebelum game selesai).
+*   **Active Sessions**: Jumlah sesi room lobi game yang saat ini sedang aktif dimainkan secara real-time.
+
+---
+
+## 2. Keterlibatan Pemain (User Engagement)
+
+Metrik keterlibatan dihitung berdasarkan data sesi game aktif:
+*   **Unique Hosts**: Jumlah akun unik yang pernah membuat/meng-host ruangan game. Metrik ini penting untuk mengetahui seberapa banyak fasilitator (guru atau panitia) yang aktif menggunakan game ini.
+*   **Total Players**: Akumulasi jumlah pemain unik yang bergabung ke lobi game.
+*   **Pencatatan Jejak Waktu**:
+    *   **First Session**: Tanggal pertama kali game ini dibuat sesinya di platform.
+    *   **Last Session**: Tanggal sesi aktif paling terakhir dibuat untuk mendeteksi apakah game tersebut masih populer dimainkan.
+
+---
+
+## 3. Visualisasi Grafik Performa Game
+
+Dasbor menggunakan grafik Recharts untuk membandingkan performa antar game:
+*   **Bagan Batang Perbandingan**: Menampilkan game mana yang paling sering dimainkan di platform (misalnya, membandingkan jumlah sesi bermain *NitroQuiz* vs *AstroLearn*).
+*   **Bagan Tren Sesi**: Grafik tren mingguan untuk melihat peningkatan pembuatan lobi pada hari sekolah/kerja.

@@ -1,0 +1,66 @@
+---
+title: Manajemen Konten & Kompetisi
+description: Panduan halaman Manajemen Kuis, Persetujuan Kuis, Library Game, Blog CMS, Sesi Membaca Blog, Grup Komunitas, Kategori, dan Manajemen Turnamen Kompetisi.
+---
+
+# Manajemen Konten & Kompetisi
+
+Kategori ini memuat dokumentasi seluruh fitur pengelolaan materi kuis edukasi, artikel blog, direktori pustaka game, grup komunitas lobi chat, kategori global, dan sistem administrasi turnamen kompetisi.
+
+---
+
+## 1. Kuis (`/quizzes`)
+Modul untuk mengelola bank kuis yang diunggah oleh pembuat kuis (kreator).
+
+*   **Daftar Master Kuis**: Menampilkan ID kuis, judul, deskripsi, kategori, bahasa, jumlah soal, status visibilitas (publik/privat), dan nama pembuat.
+*   **Editor Soal (JSON Viewer)**: Menampilkan susunan soal, opsi jawaban, gambar soal, dan kunci jawaban kuis dalam format data terstruktur.
+*   **Penyembunyian Kuis (`is_hidden = true`)**: Mengarsipkan kuis bermasalah dari daftar publik agar tidak dapat dimainkan oleh pengguna umum.
+
+---
+
+## 2. Persetujuan Kuis (`/quiz-approval`)
+Gerbang kurasi konten untuk memeriksa kuis baru yang diajukan oleh pengguna sebelum dirilis secara publik.
+
+*   **Antrean Pengajuan**: Menampilkan kuis baru yang membutuhkan persetujuan beserta profil pengunggahnya.
+*   **Persetujuan Kuis (`Approve`)**: Mengubah status kuis menjadi aktif dan disetujui, menjadikannya muncul di direktori kuis publik.
+*   **Penolakan Kuis (`Reject`)**: Mengubah status menjadi ditolak. Admin dapat memilih templat alasan penolakan (misalnya mengandung unsur SARA atau duplikat) dari modul *rejection-templates*. Alasan penolakan ini akan dikirimkan sebagai notifikasi umpan balik kepada kreator kuis.
+
+---
+
+## 3. Pustaka Game (`/games` / `/manage-games`)
+Manajemen direktori katalog game utama yang dimainkan dalam ekosistem GameForSmart.
+
+*   **Metadata Game**: Mengedit judul game, slug URL, genre, deskripsi, tautan bermain (`play_url`), video panduan, screenshot, logo, dan gambar sampul.
+*   **Pengaturan Fitur & Karakter (JSON arrays)**: Mengisi daftar fitur unik game, panduan cara bermain (*how to play*), serta pilihan karakter hero/pengejar (beserta deskripsi kecepatan, nyawa, dan akurasi masing-masing karakter) dalam bentuk array JSON terstruktur.
+
+---
+
+## 4. Blog CMS (`/blog` / `/manage-blog` / `/blog-sessions`)
+Pusat manajemen artikel publikasi untuk kebutuhan promosi dan pembaruan sistem.
+
+*   **TipTap Rich Text Editor**: Halaman pembuatan blog (`/manage-blog`) dilengkapi dengan editor WYSIWYG kelas premium (TipTap) untuk menyusun format teks tebal, miring, garis bawah, perataan teks, menyisipkan gambar, dan tautan luar secara dinamis.
+*   **Pelacakan Pembaca Blog (`/blog-sessions`)**:
+    *   **Analisis Sesi Membaca**: Melacak durasi membaca pengguna (dalam detik), kedalaman scroll halaman (*scroll depth* 0-100%), dan frekuensi interaksi pengguna saat membuka artikel.
+    *   **Sumber Rujukan (*Referrer*)**: Mencatat dari mana pembaca datang (misalnya Google, direct link, atau media sosial) serta user agent yang digunakan.
+
+---
+
+## 5. Grup Komunitas (`/groups`)
+Modul untuk memantau ruang obrolan (*lobby chat*) grup komunitas yang dibuat oleh para pemain.
+
+*   **Identitas Grup**: Mengelola nama grup, deskripsi, gambar avatar/sampul, kode undangan (*invite code*), pembuat grup, serta statistik jumlah anggota.
+*   **Log Aktivitas Grup (`group_activities`)**: Mencatat setiap kejadian penting di dalam grup, seperti anggota baru yang bergabung, pergantian nama, atau aktivitas bermain bersama.
+*   **Pembersihan Chat Otomatis**: Saat lobi dihapus, sistem akan membersihkan pesan obrolan terkait untuk menghemat ruang penyimpanan.
+
+---
+
+## 6. Kompetisi & Turnamen (`/competition` / `/manage-competitions` / `/manage-sessions`)
+Modul terpenting untuk mengonfigurasi jalannya turnamen berskala besar.
+
+*   **Formulir Kompetisi**: Menentukan poster, nama turnamen, tanggal pendaftaran, durasi kualifikasi, biaya registrasi (Xendit integration), syarat aturan, dan total hadiah (*prize pool*).
+*   **Penyusunan Babak & Klasemen (Rounds & Groups)**:
+    *   Admin dapat menambahkan babak baru (misalnya: Kualifikasi -> Semifinal -> Final).
+    *   Pada setiap babak, admin dapat membagi peserta menjadi beberapa klasemen grup (Standings) dan mengaitkan kuis kustom untuk dimainkan di grup tersebut.
+*   **Sinkronisasi Real-Time & Cascading Delete**:
+    *   Saat menyimpan klasemen atau babak kuis melalui dialog kustom [phase-group-stage.tsx](file:///d:/UBIG/PROYEK/admin_dashboard-main/app/%28dashboard%29/manage-competitions/%5Bid%5D/_components/phase-group-stage.tsx), data langsung disinkronkan ke database.
+    *   Jika admin menghapus suatu babak atau grup, sistem secara otomatis melakukan pembersihan cascading: menghapus entri room lobi di tabel `groups` dan sesi room di tabel `game_sessions` agar database bebas dari data sampah yatim piatu.

@@ -1,0 +1,59 @@
+---
+title: Manajemen & Persetujuan Kuis
+description: Dokumentasi alur pengisian database kuis, modul kurasi persetujuan, dan penolakan kuis berdasarkan templat.
+---
+
+# Manajemen & Persetujuan Kuis
+
+Kuis adalah konten utama di dalam sistem yang dimainkan oleh pengguna. Tim administrator mengendalikan penyebaran kuis melalui halaman **Quizzes** (`/quizzes`) dan **Quiz Approval** (`/quiz-approval`).
+
+---
+
+## 1. Halaman Kuis Master (`/quizzes`)
+
+Halaman ini memuat seluruh data kuis yang ada di sistem, baik kuis bawaan sistem (*system default*) maupun kuis yang dibuat oleh pengguna/kreator umum.
+
+*   **Identitas Kuis**: Judul, Deskripsi, Kategori, Bahasa, dan Pembuat Kuis.
+*   **Visibilitas Konten**:
+    *   **Is Public**: Jika `true`, kuis dapat dicari dan dimainkan oleh siapa saja di direktori game.
+    *   **Is Hidden**: Jika `true` (biasanya karena pelanggaran atau kualitas buruk), kuis disembunyikan paksa oleh admin.
+*   **Pertanyaan (JSON Array)**: Penampil visual isi daftar pertanyaan kuis, pilihan ganda, durasi pengerjaan per soal, serta gambar soal pendukung.
+
+---
+
+## 2. Antrean Persetujuan Kuis (`/quiz-approval`)
+
+Setiap kuis baru yang dibuat oleh pengguna berstatus "Pending" (menunggu persetujuan) sebelum bisa diakses secara publik. Kurator memeriksa kuis tersebut di halaman ini.
+
+```
+                  +------------------+
+                  | Quiz Submitted   |
+                  | (Status: Pending)|
+                  +------------------+
+                            |
+                            v
+                  +------------------+
+                  |  Quiz Approval   |
+                  |  Curation Queue  |
+                  +------------------+
+                           / \
+                          /   \
+                  Approve      Reject
+                    /           \
+                   v             v
+            +------------+   +-------------------+
+            | Status:    |   | Status: Rejected  |
+            | Approved   |   | Select Rejection  |
+            | (Public)   |   | Template Reason   |
+            +------------+   +-------------------+
+```
+
+### Prosedur Kerja Curation Queue:
+1.  Admin membuka detail kuis dalam antrean untuk meninjau kecocokan judul, kategori, bahasa, dan kesesuaian butir soal.
+2.  **Menolak Kuis (`Reject`)**: 
+    *   Jika kuis tidak layak (misalnya berbau SARA, merusak kenyamanan bermain, atau judul acak-acakan), admin menekan tombol **Reject**.
+    *   Admin memilih salah satu alasan penolakan standar dari dropdown (diambil dari modul *Rejection Templates*).
+    *   Sistem mengubah status kuis menjadi ditolak dan mengirimkan notifikasi balik berisi detail alasan penolakan kepada kreator kuis.
+3.  **Menyetujui Kuis (`Approve`)**:
+    *   Jika kuis memenuhi standar kelayakan, admin menekan tombol **Approve**.
+    *   Status kuis berubah menjadi aktif dan terpublikasi, serta otomatis muncul pada daftar pilihan kuis di landing page game client.

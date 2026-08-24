@@ -1,0 +1,75 @@
+---
+title: Administrator & Resepsionis QR Check-In
+description: Panduan teknis menu Administrator, pengelolaan meja resepsionis luring, integrasi kamera pemindai QR Code, dan database realtime check-in.
+---
+
+# Administrator & Resepsionis QR Check-In
+
+Bagian ini mendokumentasikan fungsionalitas manajemen staf internal di menu **Administrator** (`/administrator`) dan sistem penanganan kehadiran turnamen luring di halaman **Receptionist** (`/receptionist`).
+
+---
+
+## 1. Menu Administrator (`/administrator`)
+
+Digunakan oleh administrator tingkat tinggi (Super Admin) untuk mengontrol izin operasional internal:
+*   **Registrasi Staf Baru**: Menambahkan user ke dalam kelompok staf administratif.
+*   **Hak Akses Kontrol**: Mengatur batasan menu yang boleh dibuka (misalnya memisahkan akses moderator kuis dengan staf penanganan billing keuangan).
+*   **Audit Tindakan**: Melacak riwayat aksi administratif staf tertentu melalui integrasi log audit.
+
+---
+
+## 2. Meja Resepsionis Turnamen Luring (`/receptionist`)
+
+Ketika turnamen diadakan secara luring di lokasi fisik (misalnya babak Final cerdas cermat), panitia menggunakan menu **Receptionist** untuk mendata kehadiran peserta di meja registrasi.
+
+### A. Pengelompokan Finalis Berdasarkan Klasemen (`/receptionist/[id]`)
+*   Sistem menyaring data kompetisi dan hanya menampilkan grup standings yang masuk dalam tahap **"Final"** (`stage = 'final'`).
+*   Finalis terbagi dalam kolom/kartu klasemen grup masing-masing.
+*   Admin dapat menandai kehadiran peserta (`is_present = true`) secara manual dengan mencentang checkbox kehadiran pada baris peserta.
+
+### B. Sinkronisasi Real-Time postgres Postgres Changes Channel
+*   Receptionist page berlangganan event `UPDATE` pada tabel `competition_participants` secara langsung menggunakan Supabase realtime socket channel.
+*   Jika salah satu panitia di meja registrasi menandai kehadiran peserta, status visual centang di laptop panitia registrasi lain akan berubah saat itu juga secara real-time tanpa perlu memuat ulang halaman.
+
+---
+
+## 3. Integrasi Kamera Pemindai QR Code
+
+Untuk mempercepat antrean meja registrasi, sistem terintegrasi dengan kamera web laptop/smartphone peserta/panitia menggunakan modul `html5-qrcode`.
+
+```
+                    +---------------------------+
+                    | Admin Opens QR Scanner    |
+                    | (Camera Environment/User) |
+                    +---------------------------+
+                                  |
+                                  v
+                    +---------------------------+
+                    | Scan Participant QR Code  |
+                    | (Extract Profile ID/User) |
+                    +---------------------------+
+                                  |
+                                  v
+                    +---------------------------+
+                    | Match ID in final list?   |
+                    +---------------------------+
+                       /                     \
+                     Yes                      No
+                     /                         \
+                    v                           v
+          +-------------------+       +--------------------+
+          | Record Attendance |       | Show Red Error     |
+          | Update DB         |       | Toast Notification |
+          | Show Green Toast  |       +--------------------+
+          +-------------------+
+```
+
+### Prosedur Teknis Kamera Scanner:
+1.  Admin menekan tombol **Scan QR**. Kamera depan/belakang perangkat akan diaktifkan secara otomatis.
+2.  Peserta menunjukkan QR Code dari layar profil smartphone mereka (berisi link profil atau ID profile unik).
+3.  **Pengurai QR Link**: Pemindai membaca teks hasil scan. Jika data memuat struktur link URL (`/profile/<id>`), regex memotong URL dan mengambil ID bagian paling belakang.
+4.  **Validasi Database**:
+    *   Sistem mencocokkan ID dengan daftar finalis kompetisi.
+    *   Jika **Ditemukan & Belum Hadir**: Tabel `competition_participants` diperbarui (`is_present = true`), lobi luring menyalakan notifikasi centang hijau, dan nama peserta diumumkan hadir.
+    *   Jika **Ditemukan & Sudah Hadir**: Menampilkan notifikasi informasi biru bahwa peserta telah terdaftar hadir sebelumnya.
+    *   Jika **Tidak Terdaftar**: Menampilkan notifikasi error merah bahwa QR Code tidak cocok dengan daftar peserta babak final.

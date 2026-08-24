@@ -1,0 +1,86 @@
+---
+title: Authentication & Security System
+description: Dokumentasi mendalam mengenai alur login, manajemen session, Next.js Middleware, serta keamanan tingkat database (RLS).
+---
+
+# Sistem Autentikasi & Keamanan
+
+Keamanan sistem Admin Dashboard ditangani secara ketat di dua level utama: **Sisi Aplikasi (Next.js Middleware)** dan **Sisi Database (PostgreSQL Row-Level Security / RLS)**.
+
+---
+
+## 1. Alur Autentikasi Kredensial
+
+Proses login menggunakan layanan **Supabase Auth** yang dipadukan dengan `@supabase/ssr` untuk mengamankan data session.
+
+```
++------------+        +---------------+        +----------------------+
+| User Login | -----> | Supabase Auth | -----> | Check Profiles Table |
++------------+        +---------------+        +----------------------+
+                                                          |
+                                                          v
+                                                  +----------------+
+                                                  | Is role admin? |
+                                                  +----------------+
+                                                     /          \
+                                                  Yes            No
+                                                   /              \
+                                                  v                v
+                                        Allow Access (200)    Redirect (302)
+                                        to /dashboard        to /login?error
+```
+
+1.  Admin memasukkan email/username dan kata sandi di halaman `/login`.
+2.  Data dikirimkan ke client auth Supabase untuk validasi kredensial.
+3.  Jika valid, Supabase akan menerbitkan token JWT dan refreshToken yang otomatis disimpan ke dalam cookie enkripsi di browser.
+
+### Konfigurasi Cookie & Domain Bersama
+Untuk mendukung penggunaan multi-platform dan localhost di berbagai port (misalnya ngrok, vercel, domain custom), middleware secara dinamis menentukan konfigurasi keamanan cookie:
+*   **Secure Flag**: Diaktifkan otomatis jika dijalankan di domain produksi (`.gameforsmart.com`), Vercel (`.vercel.app`), atau Ngrok (`ngrok-free.app`).
+*   **SameSite**: Diatur ke `Lax` untuk mencegah serangan CSRF sambil tetap mengizinkan pemuatan lintas origin yang aman.
+*   **Domain**: Jika berjalan pada domain produksi, cookie disetel ke `.gameforsmart.com` agar dapat dibaca oleh sub-platform game lainnya.
+
+---
+
+## 2. Proteksi Halaman Sisi Server (Next.js Middleware)
+
+Next.js Middleware (`middleware.ts`) menjadi garda terdepan untuk mencegah akses ilegal. Setiap request halaman akan melewati proses intercept berikut:
+
+### Metode Evaluasi Session
+Middleware memanggil `supabase.auth.getSession()` alih-alih `getUser()`. Pendekatan ini dipilih untuk meminimalkan latensi jaringan (*network fetch latency*) ke Supabase server saat melakukan verifikasi statis aset dan menjaga agar performa respon rute tetap optimal.
+
+### Validasi Role Khusus Admin
+Setelah session ditemukan, middleware melakukan query eksplisit ke tabel `profiles`:
+```typescript
+const { data: profile } = await supabase
+  .from("profiles")
+  .select("role")
+  .eq("auth_user_id", user.id)
+  .single()
+```
+Akses ke dashboard `/` atau `/dashboard` hanya diberikan jika kolom `role` di tabel `profiles` bernilai `"admin"` (tidak sensitif terhadap huruf besar/kecil).
+
+### Aturan Redireksi Rute
+*   **Kasus Unauthorized**: Jika user belum masuk (*unauthenticated*) atau memiliki role selain `"admin"`, middleware segera memotong request dan mengalihkan mereka ke `/login?error=unauthorized`.
+*   **Kasus Bypass Login**: Jika admin yang sudah login mencoba mengakses rute `/login`, middleware secara otomatis mengalihkan mereka kembali ke `/dashboard`.
+*   **Pengecualian Webhook (Bypass Auth)**: Rute API khusus pihak ketiga (seperti integrasi callback GitHub `/api/githubWebhook` dan webhook billing Xendit `/api/payment/webhook` / `/api/payment/create-invoice`) dilewati dari proteksi session agar sistem otomatisasi eksternal dapat melakukan POST payload secara aman tanpa halangan login.
+
+---
+
+## 3. Tingkat Keamanan Database (Supabase RLS)
+
+Untuk melengkapi proteksi di tingkat aplikasi, seluruh tabel sensitif di database PostgreSQL produksi diamankan dengan kebijakan **Row-Level Security (RLS)**.
+
+### Kebijakan SELECT untuk Admin
+Tabel-tabel audit log (`admin_audit_logs`), antrean support (`tickets`), data langganan (`subscriptions`), dan invoice (`invoices`) hanya dapat di-SELECT oleh user yang terautentikasi melalui pemeriksaan UID profil admin.
+```sql
+CREATE POLICY "Allow admins to select audit logs"
+  ON admin_audit_logs FOR SELECT
+  USING (auth.uid() IS NOT NULL);
+```
+
+### Pemisahan Akses Klien Supabase
+Di dalam kode proyek (`lib/`), pembuatan client Supabase dibagi menjadi 3 variasi berdasarkan konteks eksekusinya:
+1.  **Supabase Server Client (`lib/supabase-server.ts`)**: Digunakan dalam Server Components dan Server Actions. Secara otomatis membaca cookie request untuk memverifikasi session admin.
+2.  **Supabase Browser Client (`lib/supabase-browser.ts`)**: Digunakan dalam Client Components. Melakukan query langsung dari browser user menggunakan kunci anonim publik.
+3.  **Supabase Admin Client (`lib/supabase-admin.ts`)**: Menggunakan `service_role_key` dengan hak istimewa penuh (bypass RLS). Klien ini **hanya** diinisialisasi di sisi server untuk melakukan tugas-tugas administratif khusus yang tidak dapat diakses langsung oleh user biasa (misalnya melakukan penulisan log audit sistem secara global).

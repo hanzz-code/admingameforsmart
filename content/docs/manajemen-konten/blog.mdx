@@ -1,0 +1,38 @@
+---
+title: Blog Platform & Reader Analytics
+description: Panduan pengeditan artikel menggunakan TipTap Editor, klasifikasi kategori blog, serta visualisasi data analytics minat pembaca.
+---
+
+# Blog Platform & Reader Analytics
+
+Modul Blog (`/blog`, `/manage-blog`, dan `/blog-sessions`) adalah sarana bagi administrator untuk mempublikasikan artikel berita, pembaruan rilis game, serta menganalisis seberapa tertarik pengguna dalam membaca konten tersebut.
+
+---
+
+## 1. Halaman Utama Blog (`/blog`)
+
+Menampilkan daftar artikel blog yang telah dibuat di sistem.
+*   **Status Publikasi**: Artikel dapat berstatus `draft` (hanya dapat dilihat admin) atau `published` (tampil di landing page utama).
+*   **Metadata Ringkas**: Menampilkan tanggal rilis, nama penulis (author), kategori, dan ringkasan teks pendek (*excerpt*).
+
+---
+
+## 2. Editor Blog WYSIWYG TipTap (`/manage-blog`)
+
+Pembuatan artikel baru memanfaatkan editor teks **TipTap** kelas industri yang fleksibel dan kaya fitur.
+
+*   **Penyusunan Teks Kaya (Rich Text)**: Tombol pemformatan untuk menebalkan teks (*bold*), memiringkan (*italic*), menggarisbawahi (*underline*), dan mengatur perataan paragraf (*left, center, right, justify*).
+*   **Media & Tautan**: Penyisipan gambar cover blog dan tautan luar secara dinamis dengan validasi format URL.
+*   **Placeholder**: Fitur petunjuk teks samar (*placeholder*) di dalam area ketik untuk memandu admin saat mulai menulis artikel baru.
+
+---
+
+## 3. Pelacakan Sesi Membaca Pembaca (`/blog-sessions`)
+
+Sistem melacak kebiasaan membaca pembaca secara anonim maupun terdaftar untuk dianalisis oleh admin:
+
+*   **Durasi Sesi Membaca**: Durasi waktu (dalam detik) pembaca berada di halaman artikel.
+*   **Kedalaman Scroll (Scroll Depth)**: Persentase seberapa jauh pembaca melakukan scroll layar dari atas ke bawah (0% hingga 100%). Ini membantu mengetahui apakah artikel dibaca sampai selesai.
+*   **Interaction Count**: Frekuensi pembaca berinteraksi dengan elemen di halaman blog (misalnya klik link, memberi suka).
+*   **Referrer Tracking**: Mencatat dari mana asal rujukan pembaca (misalnya Google Search, media sosial, atau direct link).
+*   **Aggregated Analytics**: Menghitung rata-rata kedalaman scroll dan rata-rata durasi membaca untuk melihat efektivitas tulisan blog.

@@ -1,0 +1,76 @@
+---
+title: Manajemen Katalog Game
+description: Panduan teknis pengelolaan pustaka game, metadata, skema JSON karakter, dan pengaturan gameplay.
+---
+
+# Manajemen Katalog Game
+
+Modul Pustaka Game (`/games` dan `/manage-games`) memberikan kendali penuh kepada administrator untuk mendaftarkan, memperbarui, dan menonaktifkan game yang dimainkan di ekosistem GameForSmart.
+
+---
+
+## 1. Halaman Utama Katalog Game (`/games`)
+
+Menampilkan daftar seluruh game dalam bentuk kartu (*card layout*) atau tabel data terstruktur. 
+*   **Penyaringan (Filtering)**: Pencarian cepat berdasarkan nama game, tipe platform (misalnya *Web*, *Mobile*), genre, atau status rilis.
+*   **Played Count**: Menampilkan metrik seberapa sering game tersebut telah dimainkan untuk membantu memantau tren keterlibatan pemain.
+*   **Visibilitas**: Mengatur apakah game berstatus aktif (dapat dimainkan oleh publik) atau diarsipkan (hanya dapat dilihat oleh admin).
+
+---
+
+## 2. Formulir Detail Game (`/manage-games`)
+
+Saat mengedit atau menambah game baru, administrator mengisi kolom data berikut:
+
+| Nama Bidang | Deskripsi Teknis | Validasi / Format |
+|---|---|---|
+| **Title** | Nama resmi game (misalnya "NitroQuiz") | Teks, wajib diisi |
+| **Slug** | URL ramah-SEO (misalnya `nitro-quiz`) | Alfanumerik lowercase & dash (`-`) |
+| **Platform** | Platform tempat game dijalankan | Dropdown (`Web`, `Mobile`, `Desktop`) |
+| **Play URL** | Tautan endpoint untuk memuat game client | URL valid, HTTPS diwajibkan |
+| **Cover Image** | Gambar utama katalog | Tautan berkas CDN |
+| **Logo** | Logo transparan untuk branding game | Tautan berkas CDN |
+| **Played Count** | Jumlah sesi terakumulasi | Nilai numerik |
+
+---
+
+## 3. Skema Data Karakter & Cara Bermain
+
+Dua bidang penting dalam konfigurasi game menggunakan format JSON terstruktur untuk menjaga fleksibilitas engine game client:
+
+### A. Konfigurasi Karakter (Chaser / Runner JSON)
+Daftar karakter pengejar atau jagoan yang dapat dipilih pemain didefinisikan dalam array objek JSON. Setiap objek wajib memiliki properti dasar berikut:
+```json
+[
+  {
+    "id": "Hellhound",
+    "name": "Hellhound",
+    "avatar_url": "/assets/chasers/hellhound.webp",
+    "speed": 80,
+    "health": 100,
+    "accuracy": 75,
+    "description": "Tracks its prey from afar. Speed increases when close."
+  }
+]
+```
+
+### B. Fitur & Panduan Cara Bermain (`how_to_play`)
+Panduan cara bermain disimpan sebagai array teks terstruktur yang nantinya akan diparsing oleh game client untuk menampilkan panduan pengguna:
+```json
+[
+  "Jawab kuis secepat mungkin untuk meningkatkan kecepatan lari.",
+  "Kecepatan berkurang jika jawaban salah.",
+  "Hindari pengejar agar nyawa tidak berkurang."
+]
+```
+
+---
+
+## 4. Cara Mendaftarkan Game Baru
+
+Untuk mendaftarkan game baru di sistem:
+1.  Buka Admin Dashboard, navigasikan ke menu **Master Data** -> **Games** -> **Add New Game**.
+2.  Isi formulir dasar (Judul, Platform, Genre, Play URL).
+3.  Unggah gambar cover dan logo ke media bucket Supabase, lalu salin URL-nya ke formulir.
+4.  Masukkan skema karakter JSON pada kolom editor teks konfigurasi.
+5.  Klik **Save**. Sistem secara otomatis akan mencatat penambahan ini ke dalam tabel `master_games` dan memicu update log di tabel `admin_audit_logs`.

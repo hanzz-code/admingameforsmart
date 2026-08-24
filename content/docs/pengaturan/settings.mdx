@@ -1,0 +1,43 @@
+---
+title: Pengaturan Sistem & Tampilan
+description: Panduan halaman Konfigurasi Sistem, Mode Pemeliharaan (Maintenance Mode), Kustomisasi Warna Tema Dashboard, dan Berkas Alasan Penolakan Kuis.
+---
+
+# Pengaturan Sistem & Tampilan
+
+Bagian ini mendokumentasikan menu **Settings** (`/settings`), **Appearance** (`/appearance`), **Rejection Templates** (`/rejection-templates`), dan **Address** (`/address`) untuk konfigurasi operasional dan tampilan dashboard.
+
+---
+
+## 1. Konfigurasi Global & Mode Pemeliharaan (`/settings`)
+
+Menu ini mengontrol pengaturan fungsionalitas sistem backend dan frontend secara menyeluruh:
+*   **Maintenance Mode**: Sakelar toggle untuk mematikan akses publik sementara jika sistem sedang dalam proses pemeliharaan. Saat aktif, landing page dan game client akan menampilkan halaman pemberitahuan maintenance, sedangkan staf admin tetap dapat login ke dashboard untuk melakukan perbaikan.
+*   **Platform Limits**: Mengatur batas default jumlah peserta maksimal per ruangan game standard.
+
+---
+
+## 2. Kustomisasi Tema Dashboard (`/appearance`)
+
+Administrator dapat mengubah suasana visual antarmuka Admin Dashboard menggunakan panel **Theme Customizer**:
+*   **Palet Warna Utama**: Menyediakan pilihan skema warna (Zinc, Slate, Rose, Orange, Green, Blue) yang akan mengubah aksen warna tombol, border, link, dan highlight grafik secara instan.
+*   **Radius Border**: Mengatur kelengkungan border komponen (dari `0rem` untuk tampilan bersudut tajam hingga `1.0rem` untuk tampilan melingkar/modern).
+*   **Mode Gelap/Terang (Dark/Light Mode)**: Mengubah pencahayaan warna latar belakang dashboard agar ramah bagi mata admin dalam berbagai kondisi pencahayaan.
+
+---
+
+## 3. Templat Umpan Balik Penolakan Kuis (`/rejection-templates`)
+
+Untuk menghemat waktu kurator saat menolak pengajuan kuis yang tidak layak, halaman ini menyediakan manajemen draf komentar alasan penolakan kuis:
+*   **Penerjemahan Multi-Bahasa**: Setiap templat alasan penolakan memuat teks Bahasa Inggris (`reason_en`) dan Bahasa Indonesia (`reason_id`).
+*   **Penyuntingan Alasan**: Admin dapat menambah alasan baru (misal: "Soal terlalu pendek", "Gambar buram") yang nantinya akan langsung muncul sebagai opsi siap pilih pada modul kurasi `/quiz-approval`.
+
+---
+
+## 4. Master Wilayah Geografis (`/address`)
+
+Menampilkan dan mengelola data master regional wilayah geografis dunia yang disimpan pada tiga tabel database relasional:
+*   **Countries (`countries`)**: Menyimpan ISO2, ISO3, kode telepon, capital city, emoji bendera, serta koordinat peta lintang/bujur.
+*   **States (`states`)**: Menyimpan daftar provinsi yang dikaitkan ke negara induk.
+*   **Cities (`cities`)**: Menyimpan daftar kota/kabupaten yang dikaitkan ke provinsi induk.
+*   Data regional ini penting untuk memvalidasi alamat pengguna, pendaftaran sekolah peserta kompetisi, dan menampilkan persebaran analitik grafik di dashboard utama.

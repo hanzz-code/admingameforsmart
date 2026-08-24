@@ -1,0 +1,46 @@
+---
+title: Dashboard & Analitik Utama
+description: Panduan halaman Analitik Ringkasan, Master Analytics, dan Audit Trail Log Tindakan Admin.
+---
+
+# Dashboard & Analitik Utama
+
+Kategori ini mencakup halaman monitoring performa global, ringkasan KPI, dan log kepatuhan (audit trail) untuk memantau aktivitas sistem.
+
+---
+
+## 1. Global Dashboard (`/dashboard`)
+Halaman pertama yang menyambut admin setelah login, berisi visualisasi kesehatan ekosistem secara umum.
+
+*   **KPI Grid (Stats Grid)**:
+    *   **Total Users**: Jumlah seluruh akun terdaftar di sistem.
+    *   **Active Sessions**: Jumlah sesi room game yang saat ini sedang dimainkan oleh pemain.
+    *   **Completed Sessions**: Akumulasi sesi game yang telah selesai dimainkan dari awal sistem berdiri.
+    *   **Pending Reviews**: Jumlah kuis buatan kreator/pemain yang menunggu persetujuan tim kurator.
+*   **Bagan Tren (Charts Section)**:
+    *   **User Growth Chart**: Grafik garis/batang dinamis berbasis Recharts yang menampilkan statistik pertumbuhan registrasi user baru per hari, minggu, atau bulan.
+*   **Quick Access Cards**: Pintasan langsung menuju modul-modul penting seperti Pusat Tiket Support, Manajemen User, Master Data Game, dan Pengaturan Sistem.
+*   **Recent Activity Feed**: Tabel ringkas yang memuat aksi-aksi terbaru yang dilakukan oleh admin di seluruh sistem.
+
+---
+
+## 2. Master Analytics Dashboard (`/master/dashboard` / `/master`)
+Halaman khusus untuk melihat performa game individual yang ada di ekosistem GameForSmart (misalnya performa *NitroQuiz* dibandingkan dengan *CrazyRace*).
+
+*   **Sesi per Aplikasi**: Menampilkan statistik jumlah room yang dibuat dan berhasil diselesaikan untuk masing-masing game.
+*   **Metrik Pemain Unik**: Menghitung host unik (*unique hosts*) dan total pemain (*total players*) yang memainkan game tersebut untuk mengukur keterlibatan pengguna (*engagement*).
+*   **Rentang Waktu**: Pelacakan tanggal pembuatan sesi game pertama kali (*first session*) hingga sesi aktif terakhir (*last session*).
+
+---
+
+## 3. Log Audit Admin (`/audit-log` / `/audit-log-paginated`)
+Halaman kepatuhan (*compliance log*) untuk mencatat semua tindakan administratif yang dilakukan oleh admin untuk mencegah penyalahgunaan hak akses.
+
+*   **Audit Log Table**:
+    *   **Siapa**: Menampilkan nama lengkap, ID, email, dan alamat IP (`ip_address`) admin yang melakukan aksi.
+    *   **Aksi**: Menampilkan tipe aksi (seperti `APPROVE_QUIZ`, `BLOCK_USER`, `START_COMPETITION_ROUND`).
+    *   **Objek**: Menampilkan entitas yang dimodifikasi (`entity_type` & `entity_label`).
+    *   **Detail Nilai (JSONB Detail)**: Modal interaktif untuk membandingkan keadaan objek sebelum (`old_value`) dan sesudah (`new_value`) aksi dilakukan.
+*   **Optimasi Paginasi Server-Side**:
+    *   Menggunakan `.range()` Supabase dan penghitungan estimasi total data (`count: "estimated"`) agar halaman tetap termuat dalam waktu `<200ms` meskipun jumlah log mencapai jutaan baris.
+    *   **Full-Text Search (TSVECTOR)**: Menggunakan pencarian berbasis teks PostgreSQL untuk mencari log berdasarkan email admin atau judul entitas secara instan.

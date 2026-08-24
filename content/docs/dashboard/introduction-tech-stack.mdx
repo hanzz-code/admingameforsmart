@@ -1,0 +1,51 @@
+---
+title: Introduction & Tech Stack
+description: Pengenalan umum dan spesifikasi teknologi yang digunakan pada sistem Admin Dashboard GameForSmart.
+---
+
+# Pendahuluan & Tech Stack
+
+Sistem **Admin Dashboard** adalah pusat kendali administratif untuk ekosistem game multiplayer online **GameForSmart** (termasuk *AstroLearn*, *CrazyRace*, *Memory-Game*, *NitroQuiz*, dan *Zombie-Rawr*). Dashboard ini dirancang untuk mengelola data user, performa konten kuis, monitoring room game secara real-time, manajemen kompetisi/turnamen multi-babak, penanganan tiket bantuan (support), laporan moderasi konten, serta penyesuaian rekonsiliasi billing.
+
+---
+
+## Spesifikasi Teknologi (Tech Stack)
+
+Aplikasi dibangun menggunakan teknologi modern berbasis web dengan arsitektur yang mengutamakan performa, keamanan, dan tipe data yang kuat (*type-safe*).
+
+### 1. Framework Utama & Compiler
+*   **Next.js 16.0.7 (App Router)**: Memanfaatkan Server Components (RSC) untuk efisiensi loading data dan Client Components untuk interaktivitas tinggi.
+*   **React 19.2.0**: Memanfaatkan fitur-fitur rendering terbaru dan hook asinkron.
+*   **TypeScript**: Konfigurasi ketat (*strict mode*) untuk menjamin keamanan tipe data di seluruh komponen dan layanan (*service layer*).
+
+### 2. Database & Integrasi Backend
+*   **Supabase (PostgreSQL)**: Sebagai backend utama untuk penyimpanan data relasional.
+    *   **@supabase/ssr (^0.8.0)**: Digunakan untuk autentikasi server-side dan pengelolaan session berbasis cookie.
+    *   **Supabase Realtime**: Sinkronisasi data real-time pada modul pendukung seperti chat/komentar laporan dan antrean tiket support.
+    *   **Row-Level Security (RLS)**: Enkapsulasi keamanan data langsung pada tingkat baris tabel di database.
+    *   **Full-Text Search (TSVECTOR)**: Untuk pencarian log audit berskala besar secara instan.
+
+### 3. Antarmuka Pengguna & Desain (UI/UX)
+*   **TailwindCSS**: Utilitas CSS untuk styling yang responsif dan konsisten.
+*   **Shadcn UI (Radix UI Primitives)**: Library komponen UI premium berbasis Radix UI (misalnya Accordion, Dialog, Dropdown, Form, Select, Tabs, Toaster).
+*   **Lucide React**: Kumpulan ikon SVG konsisten untuk navigasi menu.
+*   **Recharts**: Library visualisasi grafik responsif untuk analytics dashboard (misalnya grafik pertumbuhan user, jumlah sesi game, visualisasi lokasi geografis).
+
+### 4. Manajemen Data & Form
+*   **TanStack Table v8 (^8.21.3)**: Untuk rendering tabel data yang sangat modular, dilengkapi fitur sorting, filtering, dan integrasi dengan paginasi.
+*   **React Hook Form (^7.60.0)**: Manajemen state form yang ringan tanpa re-render berlebihan.
+*   **Zod (3.25.76)**: Validasi skema form yang terintegrasi langsung dengan tipe data TypeScript di sisi klien maupun server.
+
+### 5. Fitur Kaya Konten & Integrasi Pembayaran
+*   **TipTap WYSIWYG Editor (^3.22.4)**: Editor teks kaya untuk pembuatan artikel blog (mendukung tautan, alignment, gambar, dan placeholder).
+*   **Xendit Node SDK (^7.0.0)**: Integrasi gateway pembayaran untuk memproses invoice biaya registrasi kompetisi.
+*   **html5-qrcode**: Scanner QR Code berbasis browser untuk memudahkan verifikasi kode game.
+*   **react-simple-maps**: Untuk visualisasi peta persebaran asal negara/wilayah pemain pada analytics utama.
+
+---
+
+## Peran Integrasi dalam Ekosistem
+
+Dashboard ini berfungsi sebagai orkestrator yang menjembatani:
+1.  **Landing Page (`GameForSmartLandingPage`)**: Untuk sinkronisasi status pembayaran registrasi turnamen (via Webhook Xendit).
+2.  **Game Clients (AstroLearn, CrazyRace, dll.)**: Mengontrol status room, lobi, dan pembatasan whitelist (*allowed_user_ids*) pada database terpusat sehingga game client dapat memblokir peserta tidak terdaftar.

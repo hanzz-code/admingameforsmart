@@ -1,0 +1,36 @@
+---
+title: Billing & Pusat Bantuan
+description: Panduan halaman Layanan Tiket Support, SLA Otomatis, Laporan Pelanggaran, dan Monitoring Billing Pembayaran Xendit.
+---
+
+# Billing & Pusat Bantuan
+
+Kategori ini memuat penjelasan sistem penanganan keluhan pengguna, otomatisasi eskalasi layanan (SLA), pelaporan pelanggaran konten, serta monitoring invoice transaksi pembayaran.
+
+---
+
+## 1. Pusat Bantuan Tiket (`/support`)
+Antarmuka terpusat bagi tim bantuan (*customer support*) untuk menjawab pertanyaan atau masalah teknis pengguna.
+
+*   **Penyaringan Tiket**: Filter antrean tiket berdasarkan prioritas (Low, Medium, High, Urgent) dan status (open, in_progress, resolved, closed).
+*   **Otomatisasi SLA Prioritas (Enterprise)**: Sistem terintegrasi dengan trigger database `fn_auto_enterprise_priority`. Jika pengguna yang mengirim tiket terdeteksi memiliki paket langganan *Enterprise*, sistem akan otomatis menaikkan tingkat prioritas tiket tersebut menjadi **High** agar mendapat respon cepat dari staf support.
+*   **Catatan Internal (Internal Notes)**: Diskusi khusus antar-staf internal di halaman detail tiket. Staf support dapat menuliskan catatan operasional (`ticket_internal_notes`) untuk berkoordinasi yang hanya terlihat oleh sesama tim admin, sementara pengguna tidak dapat melihatnya.
+*   **Otomatisasi Eskalasi Billing Overdue**: Fungsi background scheduler `fn_escalate_overdue_billing()` secara otomatis menaikkan prioritas tiket terkait billing menjadi **Urgent** apabila tiket tidak diselesaikan dalam 24 jam dan terdeteksi memiliki invoice yang lewat jatuh tempo (*overdue*).
+
+---
+
+## 2. Laporan Pelanggaran Konten (`/reports`)
+Modul moderasi untuk menangani laporan dari pengguna mengenai kuis, blog, atau grup yang dianggap melanggar syarat dan ketentuan (mengandung konten kasar, SARA, atau pornografi).
+
+*   **Detail Laporan**: Menampilkan jenis konten yang dilaporkan, pengirim laporan, pengguna yang dilaporkan, bukti tautan/gambar, catatan admin, dan tingkat prioritas.
+*   **Alur Komunikasi Kasus (Messaging)**: Menyediakan ruang diskusi obrolan interaktif antara pelapor dan admin untuk mengklarifikasi aduan sebelum keputusan diambil.
+*   **Penyelesaian**: Admin dapat langsung memblokir konten yang dilaporkan dan mengubah status laporan menjadi *Resolved*.
+
+---
+
+## 3. Pembayaran & Rekonsiliasi Billing (`/billing`)
+Pusat verifikasi transaksi keuangan yang terhubung dengan payment gateway **Xendit**.
+
+*   **Monitoring Invoice**: Menampilkan daftar invoice pembayaran turnamen kompetisi atau langganan akun beserta statusnya (paid, unpaid, overdue).
+*   **Callback Logs & Webhook Sync**: Mencatat log penerimaan webhook Xendit untuk memverifikasi apakah status pembayaran sudah terupdate secara real-time di tabel database `transactions` (status `'PAID'`) dan tabel `competition_participants` (status `is_paid = true`).
+*   **Pencegahan Idempotensi**: Menggunakan tabel `payment_idempotency` untuk merekam ID event unik Xendit guna mencegah proses transaksi ganda akibat panggilan ulang (*retry*) webhook callback yang sama.

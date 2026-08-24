@@ -1,0 +1,72 @@
+---
+title: Turnamen & Kompetisi
+description: Penjelasan mendalam fitur pembuatan kompetisi, penyeleksian semifinalis, pembagian babak (Rounds), promosi grup otomatis, pengumuman landing page, serta pengamanan Whitelist ruangan game.
+---
+
+# Turnamen & Kompetisi
+
+Sistem Turnamen (`/competition` dan `/manage-competitions`) adalah fitur utama yang memungkinkan administrator membuat kompetisi kuis berhadiah, menyeleksi semifinalis, mengatur babak penyisihan hingga final, serta mengendalikan peserta yang boleh masuk ke dalam lobi permainan.
+
+---
+
+## 1. Pembuatan & Status Kompetisi (`/competition`)
+
+Untuk menyelenggarakan turnamen baru, admin mengonfigurasi parameter berikut pada form kompetisi:
+*   **Poster Turnamen**: Banner promosi kompetisi.
+*   **Biaya Registrasi**: Diintegrasikan dengan gateway pembayaran Xendit. Pemain harus membayar nominal ini via landing page sebelum status mereka berubah menjadi terdaftar (`is_paid = true`).
+*   **Prize Pool**: Total hadiah yang diperebutkan.
+*   **Siklus Tanggal**: Mengatur masa registrasi, masa babak kualifikasi (`qualification_start_date` & `qualification_end_date`), hingga tanggal pelaksanaan babak final.
+*   **Manajemen Status Publikasi (`status`)**:
+    *   `draft`: Kompetisi hanya terlihat oleh admin. Sistem landing page secara otomatis memblokir akses publik ke kompetisi berstatus `draft`.
+    *   `published` / `coming_soon` / `finished`: Kompetisi dibuka untuk publik dan secara otomatis dirender secara dinamis (*realtime sync*) pada portal `gameforsmart.com`.
+
+---
+
+## 2. Penyeleksian Semifinalis (`is_finalist`) & Integrasi Landing Page
+
+Setelah babak kualifikasi online selesai, admin menyeleksi peserta terbaik untuk masuk ke babak semifinal:
+
+1.  **Toggle Semifinalis**:
+    *   Pada tab *Qualification* di `/manage-competitions/[id]`, admin mengeklik tombol ⭐ di samping nama peserta.
+    *   Aksi ini mengeksekusi *Server Action* untuk memperbarui kolom `is_finalist = true` pada tabel `competition_participants`.
+    *   Admin juga dapat menggunakan fitur **Batch Action** (pilih banyak peserta sekaligus → "Tandai Finalis").
+2.  **Sistem Pengumuman Emas di Landing Page**:
+    *   Portal publik `gameforsmart.com/competitions/[slug]/participants` secara otomatis mengambil daftar peserta dengan status `is_finalist = true`.
+    *   **Visibility Gate**: Pengumuman emas bertema *🏆 PENGUMUMAN SEMIFINALIS* hanya akan muncul di publik jika tanggal kualifikasi (`qualification_end_date`) sudah terlewati **DAN** admin telah menandai minimal 1 peserta sebagai semifinalis.
+    *   Pengumuman dilengkapi dengan indikator statistik per jenjang (SD/MI, SMP/MTs, SMA/SMK/MA) serta filter kategori interaktif.
+
+---
+
+## 3. Manajemen Babak, Klasemen, & Promosi Otomatis
+
+Turnamen besar membutuhkan pemisahan babak dan pembagian klasemen pemain untuk menyederhanakan antrean game lobi.
+
+### A. Babak Turnamen (Rounds) & Penugasan Kuis
+*   Kompetisi dapat memiliki banyak babak (misalnya: *Group Stage*, *Semifinal*, *Final*, *Champion*).
+*   Admin menugaskan kuis spesifik (*Assign Quiz*) yang wajib dimainkan oleh grup tersebut.
+*   Setiap anggota grup (`GroupMember`) mencatat skor permainan, catatan waktu selesai (`time_seconds`), dan status kelulusan ke babak berikutnya (`is_advanced`).
+
+### B. Promosi Peserta Otomatis Antar-Grup (*Source Group Syncing*)
+*   Saat pertandingan grup semifinal selesai (misal: *Grup Semifinal A* dan *Grup Semifinal B* masing-masing 20 orang), admin mencentang opsi **"Lolos" (`isAdvanced = true`)** pada 10 peserta terbaik dari masing-masing grup.
+*   Ketika admin membuat grup baru untuk babak `Final` dan memilih grup-grup Semifinal tersebut sebagai **Grup Sumber (`sources`)**, sistem di `PhaseGroupStage` secara otomatis memindahkan peserta yang lolos (`isAdvanced = true`) menjadi anggota grup Final tanpa perlu memasukkan nama secara manual.
+
+### C. Alur Sinkronisasi Database Real-Time & Pembersihan Cascading
+*   Penyimpanan data klasemen standings dan penugasan kuis langsung diarahkan ke server actions `saveGroupRoundsToDatabase` yang mengupdate kolom JSONB `rounds` pada tabel database `competition_groups`.
+*   **Trigger Hapus Bersih (Cleanups)**: Jika admin menghapus babak atau klasemen grup dari dashboard, sistem secara otomatis menjalankan query untuk menghapus data terkait di database:
+    1.  Menghapus data anggota klasemen di `competition_group_members`.
+    2.  Menghapus sesi permainan game aktif di `game_sessions` (atau tabel `sessions`).
+    3.  Menghapus data lobi chat terkait di tabel `groups`.
+    Ini mencegah penumpukan data sampah (*orphaned data*) di database Supabase.
+
+---
+
+## 4. Sistem Whitelist Room Game (`allowed_user_ids`)
+
+Turnamen formal melarang pemain yang tidak terdaftar menyusup ke dalam ruangan game. Sistem mengatasinya dengan filter keamanan **Whitelist**:
+
+1.  Saat lobi game disiapkan oleh admin dashboard, daftar ID user unik dari seluruh peserta yang terdaftar di dalam grup/babak tersebut dimasukkan ke dalam kolom array `allowed_user_ids` pada tabel `sessions` (atau `game_sessions`).
+2.  Ketika pemain membuka game client (AstroLearn, CrazyRace, Memory-Game, NitroQuiz, Zombie-Rawr) dan mencoba bergabung menggunakan game PIN:
+    *   Game client mengambil data session dari database.
+    *   Jika `allowed_user_ids` memiliki data (tidak kosong), sistem membandingkan ID profile pemain yang sedang login dengan daftar ID di whitelist.
+    *   Jika ID pemain tidak tercantum, proses join langsung ditolak. Pemain akan melihat layar **Access Denied / Akses Ditolak** sesuai dengan gaya visual game masing-masing.
+3.  **Host Bypass**: Pembuat kompetisi (Host Admin) secara khusus dibebaskan dari whitelist check (`isHost: true` flag) agar admin dapat masuk ke ruangan kapan saja untuk memonitor jalannya kompetisi.

@@ -1,0 +1,106 @@
+---
+title: Code Architecture & Data Flow
+description: Bedah arsitektur kode Next.js, arsitektur integrasi multi-proyek (Admin, DB, Landing Page), manajemen state klien/server, optimasi RLS, dan alur pencatatan log audit sistem.
+---
+
+# Arsitektur Kode & Alur Data
+
+Admin Dashboard dirancang dengan memisahkan *rendering layout* (Next.js App Router) dari logika pengambilan data (*service layer*) untuk menjaga kerapian kode dan mempermudah pemeliharaan jangka panjang.
+
+---
+
+## 1. Arsitektur Integrasi Multi-Proyek Terpadu
+
+Ekosistem GameForSmart terdiri dari 3 repositori utama yang berkomunikasi melalui **satu database Supabase pusat**:
+
+```
+ ┌─────────────────────────┐               ┌─────────────────────────┐
+ │  admin_dashboard-main   │               │ GameForSmartLandingPage │
+ │  (Back-Office Admin)    │               │ (Portal Publik)         │
+ └────────────┬────────────┘               └────────────┬────────────┘
+              │                                         │
+              │ WRITE / UPDATE                          │ READ (Realtime / Dynamic)
+              ▼                                         ▼
+ ┌───────────────────────────────────────────────────────────────────┐
+ │                  Database Pusat (Supabase)                        │
+ │  competitions | competition_participants | competition_groups     │
+ └───────────────────────────────────────────────────────────────────┘
+```
+
+1. **Admin Dashboard (`admin_dashboard-main`)**: 
+   * Mengatur data kompetisi, membuat babak & grup, menyeleksi semifinalis (`is_finalist = true`), serta mengontrol status publikasi (`draft` ↔ `published`).
+2. **Database Pusat (`Supabase`)**: 
+   * Menyimpan status tunggal (*Single Source of Truth*).
+   * Menerapkan kebijakan Row Level Security (**RLS**) `Public read competition_participants` agar data peserta & pengumuman semifinalis dapat dibaca oleh publik tanpa autentikasi.
+3. **Landing Page (`GameForSmartLandingPage`)**: 
+   * Menggunakan Next.js Dynamic Rendering (`revalidate = 0`) dan penanganan cache query 5 detik (`CACHE_TTL_MS = 5000`) untuk merender perubahan status kompetisi dan pengumuman semifinalis secara *realtime* saat halaman di-refresh.
+
+---
+
+## 2. Struktur Folder Proyek (`admin_dashboard-main`)
+
+```
+admin_dashboard-main/
+├── app/                        # Next.js App Router
+│   ├── (dashboard)/            # Route Group untuk halaman dashboard terproteksi auth
+│   │   ├── audit-log-paginated/# Modul audit log terpaginasi server
+│   │   ├── users/              # Modul user management
+│   │   ├── competition/        # Modul orkestrasi turnamen
+│   │   ├── manage-competitions/# Modul manajemen babak, grup, & semifinalis
+│   │   └── receptionist/       # Modul meja resepsionis
+│   ├── api/                    # Endpoint API server-side
+│   └── login/                  # Halaman masuk sistem
+├── components/                 # Komponen UI modular
+│   ├── layout/                 # Sidebar, header, language switcher
+│   ├── ui/                     # Komponen Shadcn UI dasar (button, input, dll.)
+│   └── theme-customizer.tsx    # Manajemen kostumisasi warna tema admin
+├── contexts/                   # Context Global (misal: AuthContext)
+├── lib/                        # Pustaka & Konfigurasi Global
+│   ├── services/               # Service Layer: kueri database Supabase modular
+│   ├── supabase-server.ts      # Client Supabase Server-Side
+│   ├── supabase-browser.ts     # Client Supabase Browser-Side
+│   └── supabase-admin.ts       # Client Supabase khusus Bypass RLS (Service Role)
+├── sql/                        # Berkas skema migrasi database DDL
+└── middleware.ts               # Filter autentikasi rute global
+```
+
+---
+
+## 3. Pengambilan Data & Manajemen State
+
+Aplikasi menggunakan arsitektur hibrida untuk penanganan data:
+
+### Server-Side Rendering (SSR)
+Untuk halaman-halaman yang membutuhkan pemuatan cepat dan data awal yang konsisten (seperti halaman kompetisi, detail user, dan audit log), parameter rute dan kueri langsung dibaca oleh Next.js Server Components. Data kemudian diambil melalui fungsi asinkron di folder `lib/services/` dan dikirimkan ke Client Components sebagai *props* matang.
+
+### Client-Side State & Form
+Interaksi dinamis seperti manipulasi modal dialog, input teks pencarian, dan tombol asinkron dikelola oleh hook bawaan React (`useState`, `useTransition`, `useCallback`). 
+*   **Formulir**: Dikelola secara deklaratif menggunakan **React Hook Form**.
+*   **Validasi**: Menggunakan skema **Zod** yang memvalidasi payload sebelum dikirim ke Server Actions untuk mencegah pengiriman data tidak valid ke database.
+
+---
+
+## 4. Sistem Pencatatan Log Audit (Audit Logging)
+
+Untuk memenuhi standar keamanan kepatuhan (*compliance audit*), dashboard memiliki modul pencatatan aktivitas admin secara otomatis melalui `paginated-audit-log-service.ts`:
+
+### Data yang Dicatat
+Setiap tindakan administratif (misal: `OPEN_PAGE`, `APPROVE_QUIZ`, `BLOCK_USER`, `DELETE_GROUP`) akan memicu penulisan ke tabel `admin_audit_logs` dengan informasi:
+*   Identitas Admin (ID, Nama, Email)
+*   Jenis Aksi (`action`) dan Tipe Entitas (`entity_type`)
+*   Data Lama vs Data Baru (disimpan dalam format JSONB `old_value`/`new_value`)
+*   Alamat IP asal (`ip_address`) dan stempel waktu (`created_at`)
+
+### Optimasi Paginasi & Pencarian Skala Besar
+Ketika jumlah baris log audit melampaui ratusan ribu, pemuatan konvensional akan melambat. Dashboard mengatasi hal ini dengan teknik optimasi tingkat lanjut:
+1.  **Server-Side Paginasi**: Menggunakan `.range(from, to)` untuk hanya memuat data per baris yang diminta (default: 20 data per halaman).
+2.  **Estimated Row Count**: Dibandingkan dengan query `count: "exact"` yang mengharuskan database memindai seluruh baris tabel secara penuh, sistem menggunakan `count: "estimated"` untuk mempercepat estimasi jumlah baris total hingga **10x-25x lebih cepat** pada database berukuran raksasa.
+3.  **Pencarian Full-Text (TSVECTOR)**: Kueri pencarian teks memanfaatkan kolom pencarian teks terindeks di PostgreSQL untuk memberikan respon pencarian instan (`<300ms`).
+
+---
+
+## 5. Supabase Realtime & Sinkronisasi Data
+
+Dashboard memanfaatkan fitur socket web dari **Supabase Realtime** untuk memastikan perubahan data di database langsung dipantulkan ke UI admin tanpa perlu memuat ulang halaman:
+*   **Tiket Bantuan & Chat**: Komponen chat di dalam menu `/support` berlangganan perubahan ke tabel `tickets` dan `ticket_internal_notes`. Setiap kali ada pesan baru dari user atau note baru dari staff support, pesan tersebut muncul secara instan di UI admin.
+*   **Kehadiran Pemain (Lobby)**: Memantau status room kompetisi secara real-time untuk melihat kapan peserta masuk atau keluar dari ruang tunggu game.
