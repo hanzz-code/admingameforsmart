@@ -7,6 +7,7 @@ export function baseOptions(): BaseLayoutProps {
       // JSX supported
       title: appName,
     },
+    i18n: true,
     githubUrl: `https://github.com/${gitConfig.user}/${gitConfig.repo}`,
   };
 }
